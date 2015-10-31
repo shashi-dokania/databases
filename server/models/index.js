@@ -1,51 +1,44 @@
-var db = require('../db').dbConnection;
+var mysql = require('../db');
+var Promise = require('bluebird');
+Promise.promisifyAll(module.exports);
 
 module.exports = {
 
   messages: {
 
-    get: function () {
-      db.query('SELECT * FROM `messages`;', function (err, rows, fields) {
-        if (err) {
-          console.log('error');
-        } else {
-          console.log(rows);
-        }
-      });
+    get: function (req, res) {
+      mysql.db.query('select * from messages;')
+        .then(function(data) {
+          res.json(data);
+        })
     }, 
 
+    post: function (json) {
+      var self = this;
 
-    // var json = {
-    //   username: "Valjean",
-    //   message: "In mercy's name, three days is all I need.",
-    //   roomname: "Hello"
-    // }
+      this.insertRoom(json.roomname);
+      this.insertUser(json.username);
 
-// db.query('SELECT `id` FROM `rooms` WHERE `name`="' + json.roomname + '";', function (err, rows, fields) {
-//   if (err) {
-//     console.log('error from room search in messages post');
-//   }
+      this.getRoomId(json.roomname)
+        .then(function(data) {
+          json.roomId = data;
+        })
 
-//   if (rows.length > 0) {
-//     roomId = rows[0]['id'];
-//   } else {
-//     db.query('INSERT INTO `rooms` (name) VALUES ("' + roomname + '");', function (err, rows, fields) {
-//       if (err) {
-//         console.log('error from room insert in messages post')
-//       }
-//       roomId = rows[0]['id'];
-//     });
-//   }
-// });
-
-
-
+      this.getUserId(json.username)
+        .then(function(data) {
+          json.userId = data;
+        })
+        .then(function() {
+          self.insertMsg(json);
+          console.log(json);
+        })
+    },
 
     getRoomId: function(roomName) {
-      return db.query('SELECT `id` FROM `rooms` WHERE `name`="' + roomName + '";')
-        .then(function (err, rows, fields) {
+      return mysql.db.query('SELECT `id` FROM `rooms` WHERE `name`="' + roomName + '";')
+        .then(function (rows) {
           if (rows.length !== 0) {
-            return rows[0]['id'];
+            return rows[0].id;
           }
         })
         .catch(function (err) {
@@ -53,56 +46,68 @@ module.exports = {
         })
     },
 
-    getUserId: function(username) {
-      var self = this;
-      db.query('SELECT `id` FROM `users` WHERE `name`="' + username + '";', function (err, rows, fields) {
-        if (err) {
-          console.log('error from user search in messages post');
-        }
-        self.userId = rows[0]['id'];
-      });
-      this.userId = self.userId;
+    getUserId: function(userName) {
+      return mysql.db.query('SELECT `id` FROM `users` WHERE `name`="' + userName + '";')
+        .then(function (rows) {
+          if (rows.length !== 0) {
+            return rows[0].id;
+          }
+        })
+        .catch(function (err) {
+          console.log('error in user id get')
+        })
     },
 
-    post: function (json) {
-      var roomId = this.getRoomId(json.roomname);
-
-      console.log('before, ' + roomId);
-      this.getUserId(json.username);
-      console.log(this.userId);
-      this.insert(json.message, this.roomId, this.userId);
+    insertRoom: function(roomName) {
+      mysql.db.query('insert into rooms set ?', {name: roomName})
+        .catch(function(err) {
+          console.log('error in room insert');
+        })
     },
 
-    insert: function(message, roomId, userId) {
-      db.query('INSERT INTO `messages` (text, roomId, userId) VALUES ("' + message + '", ' + roomId + ', ' + userId + ');', function (err, rows, fields) {
-        if (err) {
-          console.log(err);
-        }
-        console.log('Successfully inserted message');
-      });
+
+    insertUser: function(userName) {
+      mysql.db.query('insert into users set ?', {name: userName})
+        .catch(function(err) {
+          console.log('error in user insert');
+        })
+    },
+
+    insertMsg: function(json) {
+      var tmp = {
+        text: json.message,
+        roomId: json.roomId,
+        userId: json.userId
+      };
+
+      mysql.db.query('insert into messages set ?', tmp)
+        .then(function(data) {
+          console.log(data);
+        })
+        .catch(function(err) {
+          console.log('error in message insert');
+        })
     }
-
   },
 
   users: {
     get: function () {
-      db.connect();
-      db.query('SELECT * FROM `users`;', function (err, rows, fields) {
-        if (err) {
-          console.log('error from users get');
-        } else {
-          console.log(rows);
-        }
-      });
-      db.end();
+      return mysql.db.query('select * from users;')
+        .then(function (rows) {
+          return rows;
+        })
+        .catch(function(err) {
+          console.log('error in users get');
+        })
     },
     post: function (json) {
-      var username = json.username;
-      db.query('INSERT INTO `users` (name) VALUES ("' + json.username + '");', function (err, rows, fields) {
-        if (err) {
-          console.log('error from users post');
-        }
-      });
+      var tmp = {
+        name: json.username
+      };
+      return mysql.db.query('insert into users set ?', tmp)
+        .catch(function(err) {
+          console.log('error in user post');
+        })
     }
   }
 };

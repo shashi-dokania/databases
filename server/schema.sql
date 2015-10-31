@@ -1,3 +1,5 @@
+DROP SCHEMA IF EXISTS `chat`;
+
 CREATE SCHEMA `chat`;
 
 USE `chat`;

@@ -4,8 +4,8 @@ var db = require('../db/index').dbConnection;
 module.exports = {
   messages: {
     get: function (req, res) {
-
-    }, // a function which handles a get request for all messages
+      models.messages.get(req, res);
+    },
     post: function (req, res) {
       models.messages.post(req.body);
       res.end();

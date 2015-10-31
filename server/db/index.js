@@ -1,24 +1,23 @@
 var mysql = require('promise-mysql');
 // var mysql = require('mysql');
-exports.
 
-exports.dbConnection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root', 
-  password: 'hr34',
-  database: 'chat'
-});
 
-exports.dbConnection.connect();
+// var db = mysql.createConnection({
+//   host: 'localhost',
+//   user: 'root', 
+//   password: 'hr34',
+//   database: 'chat'
+// });
 
+// db.connect();
 
 var connection;
 
 mysql.createConnection({
     host: 'localhost',
-    user: 'sauron',
-    password: 'theonetruering',
-    database: 'mordor'
-}).then(function(conn){
-    connection = conn;
+    user: 'root',
+    password: 'hr34',
+    database: 'chat'
+}).then(function(conn) {
+  module.exports.db = conn;
 });
